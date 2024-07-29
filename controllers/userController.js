@@ -65,7 +65,7 @@ export const googleAuthenticationLogin = async(req,res)=>{
     let user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User not found! Please Sign in' });
     }
 
     generateTokenAndSetCookie(user._id, res);
@@ -137,7 +137,7 @@ export const signin = async (req, res) => {
       user?.password || ""
     );
     if (!user || !isPasswordCorrect) {
-      return res.status(400).json({ error: "Invalid Credentials" });
+      return res.status(400).json({ error: "Invalid credential" });
     }
 
     generateTokenAndSetCookie(user._id, res);
