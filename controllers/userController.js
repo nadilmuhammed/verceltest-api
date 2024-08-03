@@ -37,6 +37,7 @@ export const googleAuthenticationSignUp = async (req, res) => {
         email,
         password: "", // Password not needed for Google sign-in
         gender: "male", // Handle gender as needed
+        role:"user"
       });
       await user.save();
     }
@@ -46,6 +47,7 @@ export const googleAuthenticationSignUp = async (req, res) => {
       fullname: user.fullname,
       username: user.username,
       email: user.email,
+      role:user.role,
     });
   } catch (error) {
     console.log("Error in Google signup controller", error.message);
@@ -74,6 +76,7 @@ export const googleAuthenticationLogin = async(req,res)=>{
       fullname: user.fullname,
       username: user.username,
       email: user.email,
+      role:user.role
     });
 
   } catch (error) {
@@ -108,6 +111,7 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       gender,
+      role:"user"
     });
 
     if (newUser) {
@@ -118,6 +122,7 @@ export const signup = async (req, res) => {
         fullname: newUser.fullname,
         username: newUser.username,
         email: newUser.email,
+        role:newUser.role
       });
     } else {
       res.status(400).json({ error: "invalid user data" });
@@ -146,6 +151,7 @@ export const signin = async (req, res) => {
       fullname: user.fullname,
       username: user.username,
       email: user.email,
+      role:user.role,
     });
   } catch (error) {
     console.log("Error in signin Controller", error.message);

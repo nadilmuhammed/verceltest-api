@@ -25,6 +25,9 @@ const userScheme = new mongoose.Schema(
             type: String,
             required: false,
             enum: ['male', 'female'],
+        },
+        role: {
+            type: String,
         }
     },
  { timestamps: true });
