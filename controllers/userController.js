@@ -1,19 +1,25 @@
-
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import generateTokenAndSetCookie from "../utils/generateToken.js";
 import admin from "firebase-admin";
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
+import { promisify } from "util";
+import { fileURLToPath } from "url";
 
+const unlinkAsync = promisify(fs.unlink);
 
-const serviceAccountPath = path.resolve('path/to/serviceAccountKey.json');
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+const serviceAccountPath = path.resolve("path/to/serviceAccountKey.json");
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://verification-ca0a5.firebaseio.com'
+  databaseURL: "https://verification-ca0a5.firebaseio.com",
 });
+
+// image updation path finding
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const googleAuthenticationSignUp = async (req, res) => {
   try {
@@ -25,9 +31,7 @@ export const googleAuthenticationSignUp = async (req, res) => {
 
     let user = await User.findOne({ email });
     if (user) {
-      return res
-        .status(400)
-        .json({ error: "Email already exists" });
+      return res.status(400).json({ error: "Email already exists" });
     }
     if (!user) {
       // Create a new user
@@ -37,7 +41,8 @@ export const googleAuthenticationSignUp = async (req, res) => {
         email,
         password: "", // Password not needed for Google sign-in
         gender: "male", // Handle gender as needed
-        role:"user"
+        profilePic: "",
+        role: "user",
       });
       await user.save();
     }
@@ -47,7 +52,8 @@ export const googleAuthenticationSignUp = async (req, res) => {
       fullname: user.fullname,
       username: user.username,
       email: user.email,
-      role:user.role,
+      profilePic: user.profilePic,
+      role: user.role,
     });
   } catch (error) {
     console.log("Error in Google signup controller", error.message);
@@ -55,19 +61,19 @@ export const googleAuthenticationSignUp = async (req, res) => {
   }
 };
 
-export const googleAuthenticationLogin = async(req,res)=>{
+export const googleAuthenticationLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     if (!decodedToken) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ error: "Invalid token" });
     }
 
     const email = decodedToken.email;
     let user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found! Please Sign in' });
+      return res.status(404).json({ error: "User not found! Please Sign in" });
     }
 
     generateTokenAndSetCookie(user._id, res);
@@ -76,14 +82,14 @@ export const googleAuthenticationLogin = async(req,res)=>{
       fullname: user.fullname,
       username: user.username,
       email: user.email,
-      role:user.role
+      profilePic: user.profilePic,
+      role: user.role,
     });
-
   } catch (error) {
     console.log("Error in Google login controller", error.message);
     res.status(400).json({ error: "Internal Server Error" });
   }
-}
+};
 
 export const signup = async (req, res) => {
   try {
@@ -111,7 +117,8 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       gender,
-      role:"user"
+      profilePic: "",
+      role: "user",
     });
 
     if (newUser) {
@@ -122,7 +129,8 @@ export const signup = async (req, res) => {
         fullname: newUser.fullname,
         username: newUser.username,
         email: newUser.email,
-        role:newUser.role
+        profilePic: newUser.profilePic,
+        role: newUser.role,
       });
     } else {
       res.status(400).json({ error: "invalid user data" });
@@ -151,7 +159,8 @@ export const signin = async (req, res) => {
       fullname: user.fullname,
       username: user.username,
       email: user.email,
-      role:user.role,
+      profilePic: user.profilePic,
+      role: user.role,
     });
   } catch (error) {
     console.log("Error in signin Controller", error.message);
@@ -171,15 +180,29 @@ export const logout = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   const { id } = req.params;
+  const imagePath = req.file ? req.file.filename : null;
   try {
-    const { fullname, email, username, password } = req.body;
+    const { fullname, email, username, password, gender } = req.body;
 
     // Create an update object and conditionally add the hashed password
-    const updateData = { fullname, username, email };
+    const updateData = { fullname, username, email, gender };
+    if (imagePath) {
+      updateData.profilePic = imagePath;
+    }
     if (password) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
       updateData.password = hashedPassword;
+    }
+
+    const user = await User.findById(id);
+
+    // Delete the old profile picture if a new one is uploaded
+    if (imagePath && user.profilePic) {
+      const oldImagePath = path.join(__dirname, '..', 'uploads', user.profilePic);
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+      }
     }
 
     // Update the user in the database
@@ -198,9 +221,24 @@ export const updateUser = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
- try{
-  const deleteUser = await User.findByIdAndDelete(id);
-  res.status(200).json(deleteUser);
+  try {
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (user.profilePic) {
+      const imagePath = `uploads/${user.profilePic}`;
+      try {
+        await unlinkAsync(imagePath);
+        console.log("File is deleted!");
+      } catch (err) {
+        console.error("Error deleting file:", err);
+        return res.status(500).json({ error: "Error deleting user image" });
+      }
+    }
+    const deleteUser = await User.findByIdAndDelete(id);
+    res.status(200).json(deleteUser);
   } catch (error) {
     console.log(`Error in deleteUser controller: ${error.message}`);
     res.status(400).json({ error: "Internal Server Error" });
