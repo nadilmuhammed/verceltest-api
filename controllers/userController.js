@@ -180,15 +180,12 @@ export const logout = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const imagePath = req.file ? req.file.filename : null;
+  // const imagePath = req.file ? req.file.filename : null;
   try {
-    const { fullname, email, username, password, gender } = req.body;
+    const { fullname, email, username, password, gender,profilePic } = req.body;
 
     // Create an update object and conditionally add the hashed password
-    const updateData = { fullname, username, email, gender };
-    if (imagePath) {
-      updateData.profilePic = imagePath;
-    }
+    const updateData = { fullname, username, email, gender,profilePic };
     if (password) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
@@ -198,12 +195,12 @@ export const updateUser = async (req, res) => {
     const user = await User.findById(id);
 
     // Delete the old profile picture if a new one is uploaded
-    if (imagePath && user.profilePic) {
-      const oldImagePath = path.join(__dirname, '..', 'uploads', user.profilePic);
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-    }
+    // if (imagePath && user.profilePic) {
+    //   const oldImagePath = path.join(__dirname, '..', 'uploads', user.profilePic);
+    //   if (fs.existsSync(oldImagePath)) {
+    //     fs.unlinkSync(oldImagePath);
+    //   }
+    // }
 
     // Update the user in the database
     const updateUser = await User.findByIdAndUpdate(

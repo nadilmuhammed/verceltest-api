@@ -1,14 +1,6 @@
 import User from "../models/userModel.js";
 import generateTokenAndSetCookie from "../utils/generateToken.js";
 import bcrypt from "bcryptjs";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-
-// image updation path finding
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
 
 
 export const adminSignin = async (req, res) => {
@@ -40,7 +32,6 @@ export const adminSignin = async (req, res) => {
 
 export const updateAdmin = async (req, res) => {
   const { id } = req.params;
-  // const imagePath = req.file ? req.file.filename : null;
   try {
     const { fullname, email, username, password, gender,profilePic } = req.body;
 
@@ -51,18 +42,7 @@ export const updateAdmin = async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, salt);
       updateData.password = hashedPassword;
     }
-
-    const user = await User.findById(id);
-
-    // Delete the old profile picture if a new one is uploaded
-    // if (imagePath && user.profilePic) {
-    //   const oldImagePath = path.join(__dirname, '..', 'adminuploads', user.profilePic);
-    //   if (fs.existsSync(oldImagePath)) {
-    //     fs.unlinkSync(oldImagePath);
-    //   }
-    // }
-
-    // Update the user in the database
+    
     const updateUser = await User.findByIdAndUpdate(
       id,
       { $set: updateData },
