@@ -1,23 +1,17 @@
 import express from "express";
 import { adminSignin, getUserById, logout, updateAdmin } from "../controllers/adminController.js";
-import multer from "multer";
+import { createProduct, getProduct, getProductByID } from "../controllers/productController.js";
 
 const router = express.Router();
-// const adminStorage = multer.diskStorage({
-//     destination: function (req, file, cb) {
-//       cb(null, 'adminuploads/'); // Specify the destination folder for uploaded files
-//     },
-//     filename: function (req, file, cb) {
-//       cb(null,  `${Date.now()}-${file.originalname}`); // Use the current timestamp as a unique filename
-//     },
-//   });
-
-//   const uploadAdmin = multer({ storage: adminStorage });
 
 
 router.post('/login', adminSignin);
 router.post('/logout', logout);
 router.put('/updateuser/:id', updateAdmin);
 router.get('/getuser/:id', getUserById);
+
+router.post("/createproduct", createProduct);
+router.get("/getproduct/:id", getProductByID);
+router.get("/getproduct", getProduct);
 
 export default router;
